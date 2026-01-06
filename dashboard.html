@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBM - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/styles.css">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -300px;
+                z-index: 50;
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 40;
+            }
+            .overlay.active {
+                display: block;
+            }
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .module-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Mobile Overlay -->
+    <div class="overlay" id="mobileOverlay"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar w-64 bg-white shadow-lg h-screen fixed md:relative flex flex-col">
+        <!-- Logo -->
+        <div class="p-6 border-b">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-store text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">SBM</h1>
+            </div>
+            <p class="text-gray-500 text-sm mt-1">Small Business Manager</p>
+        </div>
+        
+        <!-- User Info -->
+        <div class="p-4 border-b">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-user text-gray-600"></i>
+                </div>
+                <div>
+                    <p class="font-medium" id="userName">Loading...</p>
+                    <p class="text-sm text-gray-500" id="userEmail"></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="flex-1 p-4 overflow-y-auto">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#dashboard" class="nav-link active" data-module="dashboard">
+                        <i class="fas fa-tachometer-alt mr-3"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#products" class="nav-link" data-module="products">
+                        <i class="fas fa-boxes mr-3"></i>
+                        Products & Stock
+                    </a>
+                </li>
+                <li>
+                    <a href="#sales" class="nav-link" data-module="sales">
+                        <i class="fas fa-shopping-cart mr-3"></i>
+                        Sales & POS
+                    </a>
+                </li>
+                <li>
+                    <a href="#customers" class="nav-link" data-module="customers">
+                        <i class="fas fa-users mr-3"></i>
+                        Customers
+                    </a>
+                </li>
+                <li>
+                    <a href="#finance" class="nav-link" data-module="finance">
+                        <i class="fas fa-money-bill-wave mr-3"></i>
+                        Finance
+                    </a>
+                </li>
+                <li>
+                    <a href="#reports" class="nav-link" data-module="reports">
+                        <i class="fas fa-chart-bar mr-3"></i>
+                        Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="#suppliers" class="nav-link" data-module="suppliers">
+                        <i class="fas fa-truck mr-3"></i>
+                        Suppliers
+                    </a>
+                </li>
+                <li>
+                    <a href="#employees" class="nav-link" data-module="employees">
+                        <i class="fas fa-user-tie mr-3"></i>
+                        Employees
+                    </a>
+                </li>
+                <li class="pt-4 border-t mt-4">
+                    <a href="#settings" class="nav-link" data-module="settings">
+                        <i class="fas fa-cog mr-3"></i>
+                        Settings
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Quick Actions -->
+        <div class="p-4 border-t">
+            <button id="quickSaleBtn" class="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 rounded-lg font-medium mb-2">
+                <i class="fas fa-plus mr-2"></i>Quick Sale
+            </button>
+            <button id="addProductBtn" class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium">
+                <i class="fas fa-plus mr-2"></i>Add Product
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="flex-1 md:ml-64">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm p-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <button id="menuToggle" class="md:hidden mr-4 text-gray-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-lg font-semibold text-gray-800" id="moduleTitle">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- Notifications -->
+                <div class="relative">
+                    <button id="notificationsBtn" class="text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <div id="notificationsPanel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 border">
+                        <div class="p-4 border-b">
+                            <h3 class="font-semibold">Notifications</h3>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto">
+                            <div id="notificationsList" class="p-2">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" placeholder="Search..." 
+                        class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="relative">
+                    <button id="userMenuBtn" class="flex items-center text-gray-700">
+                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <i class="fas fa-chevron-down text-sm"></i>
+                    </button>
+                    <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border">
+                        <a href="#profile" class="block px-4 py-3 hover:bg-gray-50">
+                            <i class="fas fa-user mr-2"></i>Profile
+                        </a>
+                        <a href="#settings" class="block px-4 py-3 hover:bg-gray-50">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </a>
+                        <div class="border-t">
+                            <button id="logoutBtn" class="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Content Area -->
+        <main class="p-4 md:p-6" id="mainContent">
+            <!-- Dashboard Content (Default) -->
+            <div id="dashboardContent" class="module-content">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm opacity-90">Today's Revenue</p>
+                                <h3 class="text-2xl font-bold mt-2" id="todayRevenue">$0.00</h3>
+                                <p class="text-xs mt-2 opacity-80">
+                                    <span id="revenueChange" class="text-green-300">+0%</span> from yesterday
+                                </p>
+                            </div>
+                            <i class="fas fa-dollar-sign text-2xl opacity-50"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card p-6" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm opacity-90">Total Debt</p>
+                                <h3 class="text-2xl font-bold mt-2" id="totalDebt">$0.00</h3>
+                                <p class="text-xs mt-2 opacity-80">
+                                    <span id="debtChange" class="text-red-300">0 customers</span>
+                                </p>
+                            </div>
+                            <i class="fas fa-hand-holding-usd text-2xl opacity-50"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card p-6" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm opacity-90">Stock Value</p>
+                                <h3 class="text-2xl font-bold mt-2" id="stockValue">$0.00</h3>
+                                <p class="text-xs mt-2 opacity-80">
+                                    <span id="lowStockCount" class="text-yellow-300">0 items</span> low stock
+                                </p>
+                            </div>
+                            <i class="fas fa-boxes text-2xl opacity-50"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card p-6" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm opacity-90">Cash Balance</p>
+                                <h3 class="text-2xl font-bold mt-2" id="cashBalance">$0.00</h3>
+                                <p class="text-xs mt-2 opacity-80">
+                                    Across <span id="accountCount">0</span> accounts
+                                </p>
+                            </div>
+                            <i class="fas fa-wallet text-2xl opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Revenue vs Expenses</h3>
+                        <div class="h-64">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Stock Overview</h3>
+                        <div class="h-64">
+                            <canvas id="stockChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Modules -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="module-card bg-white rounded-xl shadow p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-box text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Products</h3>
+                                <p class="text-sm text-gray-500">Manage inventory</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">Track stock levels, costs, and prices</p>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-medium">
+                                View All
+                            </button>
+                            <button class="px-4 bg-blue-600 text-white py-2 rounded-lg font-medium">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="module-card bg-white rounded-xl shadow p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-shopping-cart text-green-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Point of Sale</h3>
+                                <p class="text-sm text-gray-500">Process sales</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">Quick checkout and receipt printing</p>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg font-medium">
+                                New Sale
+                            </button>
+                            <button class="px-4 bg-green-600 text-white py-2 rounded-lg font-medium">
+                                <i class="fas fa-qrcode"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="module-card bg-white rounded-xl shadow p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-chart-line text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Reports</h3>
+                                <p class="text-sm text-gray-500">View analytics</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">Financial reports and insights</p>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-purple-50 text-purple-600 py-2 rounded-lg font-medium">
+                                View Reports
+                            </button>
+                            <button class="px-4 bg-purple-600 text-white py-2 rounded-lg font-medium">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="mt-8 bg-white rounded-xl shadow">
+                    <div class="p-6 border-b">
+                        <h3 class="font-semibold text-gray-800">Recent Activity</h3>
+                    </div>
+                    <div class="p-4">
+                        <div id="recentActivity" class="space-y-4">
+                            <!-- Activity items will be loaded here -->
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Loading activity...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other module contents will be loaded here -->
+            <div id="moduleContainer" class="hidden"></div>
+        </main>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+    
+    <!-- Modals will be loaded here -->
+    <div id="modalContainer"></div>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script type="module">
+        import { authManager } from './js/auth.js';
+        import { storeManager } from './js/store.js';
+        import UIManager from './js/ui.js';
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Check authentication
+                const user = firebase.auth(authManager.masterApp).currentUser;
+                if (!user) {
+                    window.location.href = 'auth.html';
+                    return;
+                }
+                
+                // Initialize UI Manager
+                const uiManager = new UIManager();
+                await uiManager.init();
+                
+                // Set user info
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                document.getElementById('userEmail').textContent = user.email;
+                
+                // Load dashboard data
+                await uiManager.loadDashboardData();
+                
+                // Setup event listeners
+                setupEventListeners(uiManager);
+                
+            } catch (error) {
+                console.error('App initialization failed:', error);
+                window.location.href = 'auth.html';
+            }
+        });
+        
+        function setupEventListeners(uiManager) {
+            // Mobile menu toggle
+            document.getElementById('menuToggle').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.toggle('active');
+                document.getElementById('mobileOverlay').classList.toggle('active');
+            });
+            
+            document.getElementById('mobileOverlay').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.remove('active');
+                document.getElementById('mobileOverlay').classList.remove('active');
+            });
+            
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const module = link.dataset.module;
+                    uiManager.switchModule(module);
+                    
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    // Close mobile menu
+                    document.querySelector('.sidebar').classList.remove('active');
+                    document.getElementById('mobileOverlay').classList.remove('active');
+                });
+            });
+            
+            // User menu
+            document.getElementById('userMenuBtn').addEventListener('click', () => {
+                document.getElementById('userMenu').classList.toggle('hidden');
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await authManager.logout();
+            });
+            
+            // Notifications
+            document.getElementById('notificationsBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('notificationsPanel').classList.toggle('hidden');
+            });
+            
+            // Close menus when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#userMenuBtn')) {
+                    document.getElementById('userMenu').classList.add('hidden');
+                }
+                if (!e.target.closest('#notificationsBtn')) {
+                    document.getElementById('notificationsPanel').classList.add('hidden');
+                }
+            });
+            
+            // Quick actions
+            document.getElementById('quickSaleBtn').addEventListener('click', () => {
+                uiManager.showQuickSaleModal();
+            });
+            
+            document.getElementById('addProductBtn').addEventListener('click', () => {
+                uiManager.switchModule('products');
+            });
+        }
+    </script>
+</body>
+</html>
