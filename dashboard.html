@@ -398,10 +398,409 @@
     
     <!-- App Scripts -->
     <script type="module">
-        import { authManager } from './js/auth.js';
-        import { storeManager } from './js/store.js';
-        import UIManager from './js/ui.js';
+ // app.js - Main Application Integration
+import { authManager } from './js/auth.js';
+import { storeManager } from './js/store.js';
+import { financeManager } from './js/finance.js';
+import { crmManager } from './js/crm.js';
+import { posManager } from './js/pos.js';
+import { invoiceGenerator } from './js/invoice-generator.js';
+import UIManager from './js/ui.js';
+import Utils from './js/utils.js';
+
+class SmallBusinessManager {
+    constructor() {
+        this.modules = {
+            auth: authManager,
+            store: storeManager,
+            finance: financeManager,
+            crm: crmManager,
+            pos: posManager,
+            invoices: invoiceGenerator,
+            ui: null,
+            utils: Utils
+        };
         
+        this.currentUser = null;
+        this.businessInfo = null;
+        this.init();
+    }
+
+    async init() {
+        try {
+            // Check authentication
+            await this.checkAuth();
+            
+            // Initialize UI Manager
+            this.modules.ui = new UIManager(this);
+            await this.modules.ui.init();
+            
+            // Load business info
+            await this.loadBusinessInfo();
+            
+            // Initialize real-time listeners
+            this.initRealTimeListeners();
+            
+            // Setup global event handlers
+            this.setupGlobalHandlers();
+            
+            console.log('SBM initialized successfully');
+            
+        } catch (error) {
+            console.error('Failed to initialize SBM:', error);
+            this.handleInitializationError(error);
+        }
+    }
+
+    async checkAuth() {
+        const user = firebase.auth(authManager.masterApp).currentUser;
+        if (!user) {
+            window.location.href = 'auth.html';
+            throw new Error('User not authenticated');
+        }
+        this.currentUser = user;
+        return user;
+    }
+
+    async loadBusinessInfo() {
+        try {
+            const userDoc = await storeManager.getDocument('users', this.currentUser.uid);
+            this.businessInfo = userDoc || {};
+            
+            // Set default business info if not exists
+            if (!this.businessInfo.businessName) {
+                this.businessInfo.businessName = this.currentUser.displayName || 'My Business';
+                await storeManager.updateDocument('users', this.currentUser.uid, {
+                    businessName: this.businessInfo.businessName
+                });
+            }
+            
+            return this.businessInfo;
+        } catch (error) {
+            console.error('Error loading business info:', error);
+            return null;
+        }
+    }
+
+    initRealTimeListeners() {
+        // Listen for low stock notifications
+        storeManager.onCollectionUpdate('products', (products) => {
+            const lowStock = products.filter(p => p.lowStock && p.stock > 0);
+            const outOfStock = products.filter(p => p.stock === 0);
+            
+            if (lowStock.length > 0) {
+                this.modules.ui.showNotification(
+                    `${lowStock.length} products are low on stock`,
+                    'warning'
+                );
+            }
+            
+            if (outOfStock.length > 0) {
+                this.modules.ui.showNotification(
+                    `${outOfStock.length} products are out of stock`,
+                    'error'
+                );
+            }
+        });
+        
+        // Listen for new sales
+        storeManager.onCollectionUpdate('sales', (sales) => {
+            if (sales.length > 0) {
+                const latestSale = sales[0];
+                if (new Date(latestSale.createdAt.toDate()) > new Date(Date.now() - 5000)) {
+                    this.modules.ui.showNotification(
+                        `New sale: $${latestSale.total.toFixed(2)}`,
+                        'success'
+                    );
+                }
+            }
+        });
+        
+        // Listen for overdue invoices
+        storeManager.onCollectionUpdate('invoices', (invoices) => {
+            const overdue = invoices.filter(inv => 
+                inv.status === 'overdue' && 
+                new Date(inv.dueDate.toDate()) < new Date()
+            );
+            
+            if (overdue.length > 0) {
+                this.modules.ui.showNotification(
+                    `${overdue.length} invoices are overdue`,
+                    'error'
+                );
+            }
+        });
+    }
+
+    setupGlobalHandlers() {
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + S for save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                this.handleSave();
+            }
+            
+            // F1 for help
+            if (e.key === 'F1') {
+                e.preventDefault();
+                this.showHelp();
+            }
+            
+            // ESC to close modals
+            if (e.key === 'Escape') {
+                this.closeAllModals();
+            }
+        });
+        
+        // Online/offline detection
+        window.addEventListener('online', () => {
+            this.modules.ui.showNotification('You are back online', 'success');
+            this.syncOfflineData();
+        });
+        
+        window.addEventListener('offline', () => {
+            this.modules.ui.showNotification('You are offline. Changes will be synced when back online.', 'warning');
+        });
+        
+        // Before unload warning
+        window.addEventListener('beforeunload', (e) => {
+            // Check for unsaved changes
+            if (this.hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+    }
+
+    async handleSave() {
+        // Implement save logic based on current context
+        const currentModule = this.modules.ui.currentModule;
+        
+        switch (currentModule) {
+            case 'products':
+                await this.modules.ui.saveCurrentProduct();
+                break;
+            case 'customers':
+                await this.modules.ui.saveCurrentCustomer();
+                break;
+            case 'finance':
+                await this.modules.ui.saveCurrentTransaction();
+                break;
+            default:
+                this.modules.ui.showNotification('No save action for current module', 'info');
+        }
+    }
+
+    showHelp() {
+        const helpContent = `
+            <div class="help-modal">
+                <h2>SBM Help & Shortcuts</h2>
+                <div class="help-sections">
+                    <section>
+                        <h3>Keyboard Shortcuts</h3>
+                        <ul>
+                            <li><kbd>Ctrl/Cmd + S</kbd> - Save current item</li>
+                            <li><kbd>F1</kbd> - Show this help</li>
+                            <li><kbd>ESC</kbd> - Close modal/panel</li>
+                            <li><kbd>Ctrl/Cmd + F</kbd> - Search</li>
+                            <li><kbd>Ctrl/Cmd + P</kbd> - Print</li>
+                        </ul>
+                    </section>
+                    
+                    <section>
+                        <h3>Quick Actions</h3>
+                        <ul>
+                            <li>Click business name in sidebar to edit business info</li>
+                            <li>Double-click any table row to edit</li>
+                            <li>Right-click products for quick actions</li>
+                            <li>Drag and drop to reorder items</li>
+                        </ul>
+                    </section>
+                    
+                    <section>
+                        <h3>Tips</h3>
+                        <ul>
+                            <li>Use barcode scanner for quick product lookup</li>
+                            <li>Export data regularly for backup</li>
+                            <li>Set up low stock alerts in settings</li>
+                            <li>Use customer tags for segmentation</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        `;
+        
+        this.modules.ui.showModal('Help', helpContent, 'lg');
+    }
+
+    closeAllModals() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.remove();
+        });
+    }
+
+    hasUnsavedChanges() {
+        // Check if there are unsaved changes in forms
+        const forms = document.querySelectorAll('form[data-unsaved]');
+        return Array.from(forms).some(form => form.hasAttribute('data-unsaved'));
+    }
+
+    async syncOfflineData() {
+        // Sync any offline data with server
+        const offlineData = Utils.getLocalStorage('offline_data', []);
+        
+        if (offlineData.length > 0) {
+            const loader = Utils.showLoading('Syncing offline data...');
+            
+            try {
+                for (const data of offlineData) {
+                    switch (data.type) {
+                        case 'sale':
+                            await storeManager.addDocument('sales', data.data);
+                            break;
+                        case 'transaction':
+                            await financeManager.recordTransaction(data.data);
+                            break;
+                        case 'customer':
+                            await crmManager.createCustomer(data.data);
+                            break;
+                    }
+                }
+                
+                // Clear offline data
+                Utils.removeLocalStorage('offline_data');
+                
+                this.modules.ui.showNotification('Offline data synced successfully', 'success');
+            } catch (error) {
+                this.modules.ui.showNotification('Failed to sync some offline data', 'error');
+            } finally {
+                Utils.hideLoading(loader);
+            }
+        }
+    }
+
+    handleInitializationError(error) {
+        console.error('Initialization error:', error);
+        
+        const errorMessage = `
+            <div class="error-container">
+                <h2>Application Error</h2>
+                <p>Failed to initialize Small Business Manager:</p>
+                <pre>${error.message}</pre>
+                <div class="error-actions">
+                    <button onclick="location.reload()" class="btn btn-primary">
+                        <i class="fas fa-redo"></i> Reload Application
+                    </button>
+                    <button onclick="location.href='index.html'" class="btn btn-secondary">
+                        <i class="fas fa-cog"></i> Reconfigure Settings
+                    </button>
+                    <button onclick="authManager.logout()" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.innerHTML = errorMessage;
+    }
+
+    // Global export function
+    exportData(type, format = 'csv') {
+        switch (type) {
+            case 'products':
+                return this.modules.store.exportCollection('products');
+            case 'customers':
+                return this.modules.crm.exportCustomers(format);
+            case 'transactions':
+                return this.modules.finance.exportFinancialData(format);
+            case 'sales':
+                return this.modules.store.exportCollection('sales');
+            default:
+                throw new Error(`Unknown export type: ${type}`);
+        }
+    }
+
+    // Global search
+    async globalSearch(query) {
+        const results = {
+            products: [],
+            customers: [],
+            sales: [],
+            invoices: []
+        };
+        
+        // Search products
+        const products = await this.modules.store.getDocuments('products');
+        results.products = products.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase()) ||
+            p.sku.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        // Search customers
+        results.customers = await this.modules.crm.searchCustomers(query);
+        
+        // Search sales
+        const sales = await this.modules.store.getDocuments('sales');
+        results.sales = sales.filter(s => 
+            s.customerName.toLowerCase().includes(query.toLowerCase()) ||
+            s.paymentReference?.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        // Search invoices
+        const invoices = await this.modules.store.getDocuments('invoices');
+        results.invoices = invoices.filter(i => 
+            i.customerName.toLowerCase().includes(query.toLowerCase()) ||
+            i.invoiceNumber.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        return results;
+    }
+
+    // Quick actions
+    async quickSale(productId, quantity = 1, customerId = null) {
+        if (customerId) {
+            const customer = await this.modules.crm.getCustomer(customerId);
+            this.modules.pos.setCustomer(customer);
+        }
+        
+        return await this.modules.pos.quickSale(productId, quantity);
+    }
+
+    async createInvoiceFromSale(saleId) {
+        const sale = await this.modules.store.getDocument('sales', saleId);
+        if (!sale) throw new Error('Sale not found');
+        
+        const invoiceData = {
+            customerName: sale.customerName,
+            customerEmail: sale.customerEmail,
+            items: sale.items.map(item => ({
+                name: item.name,
+                description: item.sku,
+                quantity: item.quantity,
+                unitPrice: item.price,
+                unit: 'pcs',
+                taxRate: this.modules.pos.taxRate,
+                amount: item.total
+            })),
+            subtotal: sale.subtotal,
+            taxAmount: sale.tax,
+            totalAmount: sale.total,
+            paymentTerms: 30,
+            status: 'pending'
+        };
+        
+        return await this.modules.invoices.generateInvoice(invoiceData);
+    }
+}
+
+// Initialize the application
+let sbmApp;
+
+document.addEventListener('DOMContentLoaded', () => {
+    sbmApp = new SmallBusinessManager();
+});
+      
         // Initialize the app
         document.addEventListener('DOMContentLoaded', async () => {
             try {
