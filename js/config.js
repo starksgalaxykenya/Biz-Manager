@@ -1,11 +1,13 @@
 // Master Firebase config for authentication portal
-const MASTER_CONFIG = {
-    apiKey: "AIzaSyYOUR_MASTER_API_KEY",
-    authDomain: "sbm-master.firebaseapp.com",
-    projectId: "sbm-master",
-    storageBucket: "sbm-master.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abcdef123456"
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBORBswvSauHGag4Zkp4f_If3Rx9zNiagU",
+  authDomain: "carskenyaapp.firebaseapp.com",
+  projectId: "carskenyaapp",
+  storageBucket: "carskenyaapp.firebasestorage.app",
+  messagingSenderId: "80734328",
+  appId: "1:80734328:web:2b4fbe06dabb73dad7258d",
+  measurementId: "G-8YYTLJVJK7"
 };
 
 class ConfigManager {
