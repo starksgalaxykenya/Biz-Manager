@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice {{invoiceNumber}}</title>
+    <style>
+        /* Invoice Styles */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+            padding: 20px;
+        }
+        
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .invoice-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+        }
+        
+        .invoice-header .business-info h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-header .business-info p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        
+        .invoice-number h2 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .invoice-date p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .invoice-body {
+            padding: 40px;
+        }
+        
+        .parties-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .party-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .party-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .party-info p {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .party-info strong {
+            color: #475569;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 14px;
+        }
+        
+        .items-table thead {
+            background: #f1f5f9;
+        }
+        
+        .items-table th {
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .items-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .items-table tbody tr:hover {
+            background: #f8fafc;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .totals-section {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .total-row:last-child {
+            border-bottom: none;
+        }
+        
+        .total-row.grand-total {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            padding-top: 15px;
+            margin-top: 10px;
+            border-top: 2px solid #c7d2fe;
+        }
+        
+        .invoice-footer {
+            padding: 30px 40px;
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .payment-info {
+            margin-bottom: 25px;
+        }
+        
+        .payment-info h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+        
+        .payment-details {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .payment-details p {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .terms-conditions {
+            margin-top: 25px;
+        }
+        
+        .terms-conditions h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+        
+        .terms-conditions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .terms-conditions li {
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #64748b;
+            position: relative;
+            padding-left: 15px;
+        }
+        
+        .terms-conditions li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            font-weight: 700;
+            color: rgba(102, 126, 234, 0.05);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .invoice-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .watermark {
+                display: none;
+            }
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Watermark -->
+        <div class="watermark">{{status}}</div>
+        
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="business-info">
+                <h1>{{businessName}}</h1>
+                <p>{{businessAddress}}</p>
+                <p>{{businessPhone}} | {{businessEmail}}</p>
+                <p>Tax ID: {{businessTaxId}}</p>
+            </div>
+            
+            <div class="invoice-meta">
+                <div class="invoice-number">
+                    <h2>INVOICE #{{invoiceNumber}}</h2>
+                    <div class="status-badge status-{{status.toLowerCase()}}">
+                        {{status}}
+                    </div>
+                </div>
+                <div class="invoice-date">
+                    <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
+                    <p><strong>Due Date:</strong> {{dueDate}}</p>
+                    <p><strong>Terms:</strong> {{paymentTerms}} days</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Body -->
+        <div class="invoice-body">
+            <!-- Parties -->
+            <div class="parties-section">
+                <div class="party-card">
+                    <h3>Bill From</h3>
+                    <div class="party-info">
+                        <p><strong>{{businessName}}</strong></p>
+                        <p>{{businessAddress}}</p>
+                        <p>Phone: {{businessPhone}}</p>
+                        <p>Email: {{businessEmail}}</p>
+                        <p>Tax ID: {{businessTaxId}}</p>
+                    </div>
+                </div>
+                
+                <div class="party-card">
+                    <h3>Bill To</h3>
+                    <div class="party-info">
+                        <p><strong>{{customerName}}</strong></p>
+                        <p>{{customerAddress}}</p>
+                        <p>Phone: {{customerPhone}}</p>
+                        <p>Email: {{customerEmail}}</p>
+                        {{#if customerTaxId}}<p>Tax ID: {{customerTaxId}}</p>{{/if}}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Items Table -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-right">Unit Price</th>
+                        <th class="text-right">Tax</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each items}}
+                    <tr>
+                        <td>
+                            <strong>{{name}}</strong><br>
+                            <small>{{description}}</small>
+                        </td>
+                        <td class="text-center">{{quantity}} {{unit}}</td>
+                        <td class="text-right">{{currency}} {{unitPrice}}</td>
+                        <td class="text-right">{{taxRate}}%</td>
+                        <td class="text-right">{{currency}} {{amount}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            
+            <!-- Totals -->
+            <div class="totals-section">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span>{{currency}} {{subtotal}}</span>
+                </div>
+                <div class="total-row">
+                    <span>Tax ({{totalTaxRate}}%):</span>
+                    <span>{{currency}} {{taxAmount}}</span>
+                </div>
+                {{#if discountAmount}}
+                <div class="total-row">
+                    <span>Discount:</span>
+                    <span>-{{currency}} {{discountAmount}}</span>
+                </div>
+                {{/if}}
+                {{#if shippingAmount}}
+                <div class="total-row">
+                    <span>Shipping:</span>
+                    <span>{{currency}} {{shippingAmount}}</span>
+                </div>
+                {{/if}}
+                <div class="total-row grand-total">
+                    <span>TOTAL AMOUNT DUE:</span>
+                    <span>{{currency}} {{totalAmount}}</span>
+                </div>
+            </div>
+            
+            <!-- Notes -->
+            {{#if notes}}
+            <div class="notes" style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+                <h4 style="font-size: 16px; font-weight: 600; color: #475569; margin-bottom: 10px;">Notes</h4>
+                <p style="color: #64748b; font-size: 14px;">{{notes}}</p>
+            </div>
+            {{/if}}
+        </div>
+        
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <div class="payment-info">
+                <h4>Payment Information</h4>
+                <div class="payment-details">
+                    <p><strong>Bank Transfer:</strong></p>
+                    <p>Bank: {{bankName}}</p>
+                    <p>Account Name: {{accountName}}</p>
+                    <p>Account Number: {{accountNumber}}</p>
+                    <p>Swift Code: {{swiftCode}}</p>
+                    
+                    {{#if mobileMoneyInfo}}
+                    <p style="margin-top: 15px;"><strong>Mobile Money:</strong></p>
+                    <p>{{mobileMoneyInfo}}</p>
+                    {{/if}}
+                </div>
+            </div>
+            
+            <div class="terms-conditions">
+                <h4>Terms & Conditions</h4>
+                <ul>
+                    <li>Payment is due within {{paymentTerms}} days of invoice date</li>
+                    <li>A late fee of {{lateFeePercentage}}% will be applied to overdue invoices</li>
+                    <li>Please include invoice number with your payment</li>
+                    <li>All prices are in {{currency}}</li>
+                    {{#each terms}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions (Hidden when printing) -->
+        <div class="actions no-print">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Invoice
+            </button>
+            <button class="btn btn-success" onclick="downloadPDF()">
+                <i class="fas fa-download"></i> Download PDF
+            </button>
+            <button class="btn btn-secondary" onclick="sendEmail()">
+                <i class="fas fa-envelope"></i> Email Invoice
+            </button>
+            {{#if allowPayment}}
+            <button class="btn btn-primary" onclick="processPayment()">
+                <i class="fas fa-credit-card"></i> Pay Now
+            </button>
+            {{/if}}
+        </div>
+    </div>
+    
+    <script>
+        // Template data (would be populated by server)
+        const templateData = {
+            businessName: "{{businessName}}",
+            businessAddress: "{{businessAddress}}",
+            businessPhone: "{{businessPhone}}",
+            businessEmail: "{{businessEmail}}",
+            businessTaxId: "{{businessTaxId}}",
+            invoiceNumber: "{{invoiceNumber}}",
+            invoiceDate: "{{invoiceDate}}",
+            dueDate: "{{dueDate}}",
+            paymentTerms: "{{paymentTerms}}",
+            status: "{{status}}",
+            customerName: "{{customerName}}",
+            customerAddress: "{{customerAddress}}",
+            customerPhone: "{{customerPhone}}",
+            customerEmail: "{{customerEmail}}",
+            customerTaxId: "{{customerTaxId}}",
+            items: JSON.parse('{{itemsJSON}}'),
+            currency: "{{currency}}",
+            subtotal: "{{subtotal}}",
+            taxAmount: "{{taxAmount}}",
+            totalTaxRate: "{{totalTaxRate}}",
+            discountAmount: "{{discountAmount}}",
+            shippingAmount: "{{shippingAmount}}",
+            totalAmount: "{{totalAmount}}",
+            notes: "{{notes}}",
+            bankName: "{{bankName}}",
+            accountName: "{{accountName}}",
+            accountNumber: "{{accountNumber}}",
+            swiftCode: "{{swiftCode}}",
+            mobileMoneyInfo: "{{mobileMoneyInfo}}",
+            lateFeePercentage: "{{lateFeePercentage}}",
+            terms: JSON.parse('{{termsJSON}}'),
+            allowPayment: "{{allowPayment}}" === "true"
+        };
+        
+        // Action functions
+        function downloadPDF() {
+            // Generate PDF using jsPDF or similar library
+            alert('PDF download would be generated here');
+        }
+        
+        function sendEmail() {
+            // Send invoice via email
+            alert('Invoice email would be sent here');
+        }
+        
+        function processPayment() {
+            // Process payment (integrate with payment gateway)
+            alert('Payment processing would start here');
+        }
+        
+        // Auto-format currency on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Format all currency elements
+            const currencyElements = document.querySelectorAll('[data-currency]');
+            currencyElements.forEach(el => {
+                const amount = parseFloat(el.textContent);
+                if (!isNaN(amount)) {
+                    el.textContent = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: templateData.currency || 'USD'
+                    }).format(amount);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
